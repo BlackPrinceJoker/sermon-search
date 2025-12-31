@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html>
+<body>
+  <input type="text" id="query" placeholder="Search sermons...">
+  <button onclick="search()">Search</button>
+  <div id="results"></div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const supabase = supabase.createClient('https://ncypcogvnhmwfxqkzeuj.supabase.co', 'sb_publishable_HdDCRJHTAFHkE4xoGiwDtA_PvXOf5ge');
+
+    async function search() {
+      const query = document.getElementById('query').value;
+      const { data, error } = await supabase
+        .from('sermons')
+        .select('title, youtube_url, transcript')
+        .textSearch('fts', query, { config: 'english' });
+
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = data.map(s => `
+        <div>
+          <h3>${s.title}</h3>
+          <a href="${s.youtube_url}">Watch on YouTube</a>
+          <p>${s.transcript.substring(0, 200)}...</p>
+        </div>
+      `).join('');
+    }
+  </script>
+</body>
+</html>
