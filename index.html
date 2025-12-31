@@ -1,30 +1,54 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>Sermon Search</title>
+</head>
 <body>
-  <input type="text" id="query" placeholder="Search sermons...">
-  <button onclick="search()">Search</button>
-  <div id="results"></div>
+    <input type="text" id="query" placeholder="Search sermons...">
+    <button onclick="handleSearch()">Search</button>
+    <div id="results"></div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script>
-    const supabase = supabase.createClient('https://ncypcogvnhmwfxqkzeuj.supabase.co', 'sb_publishable_HdDCRJHTAFHkE4xoGiwDtA_PvXOf5ge');
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <script>
+        // Use a different name for your variable to avoid the naming conflict
+        const supabaseClient = supabase.createClient(
+            'https://ncypcogvnhmwfxqkzeuj.supabase.co', 
+            'YOUR_ANON_KEY_HERE'
+        );
 
-    async function search() {
-      const query = document.getElementById('query').value;
-      const { data, error } = await supabase
-        .from('sermons')
-        .select('title, youtube_url, transcript')
-        .textSearch('fts', query, { config: 'english' });
+        async function handleSearch() {
+            const query = document.getElementById('query').value;
+            const resultsDiv = document.getElementById('results');
+            
+            resultsDiv.innerHTML = "Searching...";
 
-      const resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = data.map(s => `
-        <div>
-          <h3>${s.title}</h3>
-          <a href="${s.youtube_url}">Watch on YouTube</a>
-          <p>${s.transcript.substring(0, 200)}...</p>
-        </div>
-      `).join('');
-    }
-  </script>
+            const { data, error } = await supabaseClient
+                .from('sermons')
+                .select('title, youtube_url, transcript')
+                .textSearch('fts', query, { 
+                    config: 'english',
+                    type: 'websearch' // Allows for more natural search terms
+                });
+
+            if (error) {
+                resultsDiv.innerHTML = "Error: " + error.message;
+                return;
+            }
+
+            if (data.length === 0) {
+                resultsDiv.innerHTML = "No sermons found matching that search.";
+                return;
+            }
+
+            resultsDiv.innerHTML = data.map(s => `
+                <div style="margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
+                    <h3>${s.title}</h3>
+                    <a href="${s.youtube_url}" target="_blank">Watch on YouTube</a>
+                    <p>${s.transcript ? s.transcript.substring(0, 200) : 'No transcript available'}...</p>
+                </div>
+            `).join('');
+        }
+    </script>
 </body>
 </html>
