@@ -1,128 +1,232 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Sermon Search</title>
+    <title>Sermon Library</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 850px; margin: 20px auto; padding: 20px; line-height: 1.6; color: #333; }
-        .search-controls { background: #f4f4f4; padding: 20px; border-radius: 8px; margin-bottom: 30px; display: flex; gap: 10px; }
+        /* --- Global & Typography --- */
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; color: #333; line-height: 1.6; }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
+        a { color: #2e7d32; text-decoration: none; cursor: pointer; }
+        a:hover { text-decoration: underline; }
+
+        /* --- View Management (Hiding/Showing Pages) --- */
+        .view-section { display: none; } /* Hide all by default */
+        .view-section.active { display: block; } /* Show active */
+
+        /* --- Search View Styles --- */
+        .search-controls { background: #f9f9f9; padding: 20px; border-radius: 8px; display: flex; gap: 10px; margin-bottom: 30px; border: 1px solid #eee; }
         input { flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
-        button { padding: 12px 24px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #1b5e20; }
+        .btn-primary { padding: 12px 24px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-primary:hover { background: #1b5e20; }
         
-        .sermon-card { margin-bottom: 50px; border-bottom: 2px solid #eee; padding-bottom: 30px; }
-        .video-container img { width: 100%; height: 100%; object-fit: cover; }
-        .video-container { position: relative; width: 100%; max-width: 240px; aspect-ratio: 16 / 9; background: #000; cursor: pointer; border-radius: 8px; overflow: hidden; margin: 15px 0; display: flex; align-items: center; justify-content: center}
-        .play-button {
-            position: absolute;
-            width: 68px;
-            height: 48px;
-            background: rgba(255, 0, 0, 0.9);
-            border-radius: 12px;
-            display: flex;            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            transition: transform 0.2s;
-        }
-        .video-container:hover .play-button { transform: scale(1.1); background: red; }
+        /* Result Card */
+        .sermon-card { background: white; border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .sermon-card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .card-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 10px; }
+        .stats-badge { background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; }
         
-        .search-stats { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; margin-bottom: 10px; }
-        .snippet { background: #fffbe6; padding: 7px; border-left: 4px solid #ffe58f; margin: 10px 0; font-style: italic; }
-        mark { background: #fffaad; padding: 0 2px; font-weight: bold; border-radius: 2px; }
+        /* Thumbnails in Search */
+        .search-thumb { width: 100%; max-width: 300px; aspect-ratio: 16/9; border-radius: 6px; object-fit: cover; cursor: pointer; margin-bottom: 15px; }
         
-        .other-mentions { display: none; margin-top: 10px; padding-left: 20px; border-left: 2px dashed #ccc; }
-        .toggle-btn { background: none; border: none; color: #0066cc; cursor: pointer; padding: 0; font-size: 0.9em; text-decoration: underline; }
+        /* Snippets */
+        .snippet { background: #fffbe6; padding: 8px; border-left: 3px solid #ffe58f; margin: 10px 0; font-style: italic; font-size: 0.95rem; }
+        mark { background: #fffaad; padding: 0 2px; font-weight: bold; }
+        
+        /* --- Player View Styles --- */
+        .player-container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+        .theater-video { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .transcript-content { max-width: 800px; margin: 0 auto; white-space: pre-wrap; font-family: Georgia, serif; font-size: 1.1rem; line-height: 1.8; color: #222; }
+
+        /* --- Transcript View Styles --- */
+        .reading-container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
+        .subtle-btn { display: inline-block; padding: 8px 16px; border: 1px solid #ccc; border-radius: 20px; color: #666; font-size: 0.9rem; transition: 0.2s; }
+        .subtle-btn:hover { border-color: #2e7d32; color: #2e7d32; text-decoration: none; }
+        
+        /* Navigation Bar */
+        .nav-bar { padding: 10px 0; margin-bottom: 20px; border-bottom: 1px solid #eee; }
     </style>
 </head>
 <body>
 
-    <h1>Sermon Archive</h1>
-    <div class="search-controls">
-        <input type="text" id="query" placeholder="Enter a word or phrase (e.g. 'Grace' or 'Mercy')...">
-        <button onclick="handleSearch()">Search Transcripts</button>
+    <div id="view-search" class="container view-section active">
+        <h1>Sermon Archive</h1>
+        <div class="search-controls">
+            <input type="text" id="query" placeholder="Search for 'Hope', 'Grace', 'Matthew 5'...">
+            <button class="btn-primary" onclick="handleSearch()">Search</button>
+        </div>
+        <div id="results"></div>
     </div>
-    
-    <div id="results"></div>
+
+    <div id="view-player" class="player-container view-section">
+        <div class="nav-bar"><a onclick="goHome()">← Back to Search</a></div>
+        <div id="player-wrapper"></div> <div id="player-text" class="transcript-content"></div>
+    </div>
+
+    <div id="view-transcript" class="reading-container view-section">
+        <div class="nav-bar" style="display:flex; justify-content:space-between; align-items:center;">
+            <a onclick="goHome()">← Back to Search</a>
+            <a id="watch-btn" class="subtle-btn">▶ Watch Video</a>
+        </div>
+        <h1 id="transcript-title"></h1>
+        <div id="transcript-body" class="transcript-content"></div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
+        // --- CONFIGURATION ---
         const supabaseClient = supabase.createClient(
             'https://ncypcogvnhmwfxqkzeuj.supabase.co', 
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jeXBjb2d2bmhtd2Z4cWt6ZXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMzgyOTcsImV4cCI6MjA4MjcxNDI5N30.H6Gl6ZPsLohoCNKzwwvY30AA83INrKD65qwL1Ma3KHc'
         );
 
-        function loadVideo(div, videoId) {
-            div.innerHTML = `
-                <iframe 
-                    width="100%" 
-                    height="100%" 
-                    src="https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1" 
-                    frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen>
-                </iframe>`;
+        // --- GLOBAL STATE ---
+        let allSermonsCache = []; // Store results to avoid re-fetching when switching views
+
+        // --- INIT ---
+        window.addEventListener('load', handleRouting);
+        window.addEventListener('popstate', handleRouting); // Handle Browser Back Button
+
+        // Enter Key Listener
+        document.getElementById("query").addEventListener("keypress", function(event) {
+            if (event.key === "Enter") handleSearch();
+        });
+
+        // --- ROUTING LOGIC ---
+        function handleRouting() {
+            const params = new URLSearchParams(window.location.search);
+            const videoId = params.get('video');
+            const transcriptId = params.get('transcript');
+
+            // Hide all views
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+
+            if (videoId) {
+                renderPlayerView(videoId);
+            } else if (transcriptId) {
+                renderTranscriptView(transcriptId);
+            } else {
+                document.getElementById('view-search').classList.add('active');
+            }
         }
 
-        function toggleMentions(btn) {
-            const container = btn.nextElementSibling;
-            const isHidden = container.style.display === "none" || container.style.display === "";
-            container.style.display = isHidden ? "block" : "none";
-            btn.innerText = isHidden ? "Hide extra mentions" : `Show ${btn.dataset.count} more mentions`;
+        function navigateTo(type, id) {
+            const url = type === 'home' ? window.location.pathname : `?${type}=${id}`;
+            window.history.pushState({}, '', url);
+            handleRouting();
         }
 
-        function getContextSnippets(text, query) {
-            if (!query) return [];
-            // Find the query globally, case-insensitive
-            const regex = new RegExp(`(\\b.{0,60})(${query})(.{0,60}\\b)`, 'gi');
-            const matches = [...text.matchAll(regex)];
-            
-            return matches.map(m => {
-                return `${m[1]}<mark>${m[2]}</mark>${m[3]}`;
-            });
-        }
+        function goHome() { navigateTo('home'); }
 
+        // --- SEARCH LOGIC ---
         async function handleSearch() {
             const query = document.getElementById('query').value.trim();
             const resultsDiv = document.getElementById('results');
             if (!query) return;
 
-            resultsDiv.innerHTML = "Processing transcripts...";
+            resultsDiv.innerHTML = "<p style='color:#666;'>Scanning library...</p>";
 
             const { data, error } = await supabaseClient
                 .from('sermons')
-                .select('title, youtube_video_id, content')
+                .select('*') // Grab everything so we can display it later
                 .textSearch('content', query, { config: 'english', type: 'websearch' });
 
             if (error) { resultsDiv.innerHTML = "Error: " + error.message; return; }
             if (data.length === 0) { resultsDiv.innerHTML = "No matches found."; return; }
 
-            resultsDiv.innerHTML = data.map((s, idx) => {
+            // 1. Process & Count Matches
+            const processedData = data.map(s => {
                 const snippets = getContextSnippets(s.content, query);
-                const count = snippets.length;
-                const thumbUrl = `https://img.youtube.com/vi/${s.youtube_video_id}/mqdefault.jpg`;
+                return { ...s, snippets, matchCount: snippets.length };
+            });
 
+            // 2. Sort by Match Count (High to Low)
+            processedData.sort((a, b) => b.matchCount - a.matchCount);
+
+            // 3. Cache data (so we don't have to fetch again when clicking items)
+            allSermonsCache = processedData;
+
+            // 4. Render
+            resultsDiv.innerHTML = processedData.map(s => {
                 return `
                 <div class="sermon-card">
-                    <h3 style="margin: 0 0 10px 0;">${s.title}</h3>
-                    
-                    <div class="video-container" onclick="loadVideo(this, '${s.youtube_video_id}')">
-                        <img src="${thumbUrl}" alt="Thumbnail">
-                        <div class="play-button">▶</div>
+                    <div class="card-header">
+                        <h3 style="margin:0;">
+                            <a onclick="navigateTo('transcript', '${s.id}')">${s.title}</a>
+                        </h3>
+                        <span class="stats-badge">${s.matchCount} Matches</span>
                     </div>
 
-                    <div class="snippet">...${snippets[0]}...</div>
-
-                    ${count > 1 ? `
-                        <button class="toggle-btn" data-count="${count - 1}" onclick="toggleMentions(this)">
-                            Show ${count - 1} more mentions
-                        </button>
-                        <div class="other-mentions">
-                            ${snippets.slice(1).map(snip => `<div class="snippet">...${snip}...</div>`).join('')}
+                    <div style="display:flex; gap: 20px; flex-wrap: wrap;">
+                        <div style="flex: 0 0 auto;" onclick="navigateTo('video', '${s.id}')">
+                            <img src="https://img.youtube.com/vi/${s.youtube_video_id}/mqdefault.jpg" class="search-thumb" title="Click to Watch">
                         </div>
-                    ` : ''}
+                        
+                        <div style="flex: 1; min-width: 250px;">
+                            <div class="snippet">...${s.snippets[0]}...</div>
+                            <div style="margin-top:15px; font-size:0.9rem;">
+                                <a onclick="navigateTo('transcript', '${s.id}')">Read Full Transcript &rarr;</a>
+                            </div>
+                        </div>
+                    </div>
                 </div>`;
             }).join('');
+        }
+
+        // --- VIEW RENDERERS ---
+        
+        async function renderPlayerView(id) {
+            document.getElementById('view-player').classList.add('active');
+            
+            // Find sermon in cache OR fetch if direct link
+            let sermon = allSermonsCache.find(s => s.id === id);
+            if (!sermon) sermon = await fetchSingleSermon(id);
+
+            // Inject Video
+            document.getElementById('player-wrapper').innerHTML = `
+                <iframe class="theater-video" 
+                    src="https://www.youtube.com/embed/${sermon.youtube_video_id}?autoplay=1" 
+                    frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
+                </iframe>`;
+            
+            // Inject Text
+            document.getElementById('player-text').innerHTML = `<h2>${sermon.title}</h2>${formatMarkdown(sermon.content)}`;
+        }
+
+        async function renderTranscriptView(id) {
+            document.getElementById('view-transcript').classList.add('active');
+
+            let sermon = allSermonsCache.find(s => s.id === id);
+            if (!sermon) sermon = await fetchSingleSermon(id);
+
+            document.getElementById('transcript-title').innerText = sermon.title;
+            document.getElementById('transcript-body').innerHTML = formatMarkdown(sermon.content);
+            
+            // Setup the "Watch" button to switch views
+            const btn = document.getElementById('watch-btn');
+            btn.onclick = () => navigateTo('video', id);
+        }
+
+        // --- UTILS ---
+
+        async function fetchSingleSermon(id) {
+            const { data } = await supabaseClient.from('sermons').select('*').eq('id', id).single();
+            return data;
+        }
+
+        function getContextSnippets(text, query) {
+            if (!query) return [];
+            const regex = new RegExp(`(\\b.{0,60})(${query})(.{0,60}\\b)`, 'gi');
+            const matches = [...text.matchAll(regex)];
+            return matches.map(m => `${m[1]}<mark>${m[2]}</mark>${m[3]}`);
+        }
+        
+        // Simple Markdown formatter (handles newlines and bold)
+        function formatMarkdown(text) {
+            if (!text) return '';
+            return text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') // Bold
+                .replace(/\n/g, '<br>'); // Line breaks
         }
     </script>
 </body>
