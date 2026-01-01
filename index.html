@@ -45,7 +45,7 @@
                 <div style="margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
                     <h3>${s.title}</h3>
                     <a href="${s.youtube_url}" target="_blank">Watch on YouTube</a>
-                    <p>${s.transcript ? s.transcript.substring(0, 200) : 'No transcript available'}...</p>
+                    <p>${s.content ? s.content.substring(0, 200) : 'No transcript available'}...</p>
                 </div>
             `).join('');
         }
