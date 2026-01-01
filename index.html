@@ -2,25 +2,69 @@
 <html>
 <head>
     <title>Sermon Search</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
+        .sermon-card { margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
+        .video-container { 
+            position: relative; 
+            width: 100%; 
+            max-width: 560px; 
+            aspect-ratio: 16 / 9; 
+            background: #000; 
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        .video-container img { width: 100%; height: 100%; object-fit: cover; }
+        .play-button {
+            position: absolute;
+            width: 68px;
+            height: 48px;
+            background: rgba(255, 0, 0, 0.9);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            transition: transform 0.2s;
+        }
+        .video-container:hover .play-button { transform: scale(1.1); background: red; }
+    </style>
 </head>
 <body>
-    <input type="text" id="query" placeholder="Search sermons...">
-    <button onclick="handleSearch()">Search</button>
-    <div id="results"></div>
+    <h1>Sermon Library</h1>
+    <input type="text" id="query" placeholder="Search by keyword or scripture..." style="padding: 10px; width: 300px;">
+    <button onclick="handleSearch()" style="padding: 10px 20px; cursor: pointer;">Search</button>
+    <div id="results" style="margin-top: 20px;"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     
     <script>
-        // Use a different name for your variable to avoid the naming conflict
         const supabaseClient = supabase.createClient(
             'https://ncypcogvnhmwfxqkzeuj.supabase.co', 
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jeXBjb2d2bmhtd2Z4cWt6ZXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMzgyOTcsImV4cCI6MjA4MjcxNDI5N30.H6Gl6ZPsLohoCNKzwwvY30AA83INrKD65qwL1Ma3KHc'
         );
 
+        // This function replaces the thumbnail with the actual YouTube Iframe
+        function loadVideo(div, videoId) {
+            div.innerHTML = `
+                <iframe 
+                    width="100%" 
+                    height="100%" 
+                    src="https://www.youtube.com/embed/${videoId}?autoplay=1" 
+                    frameborder="0" 
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                    allowfullscreen>
+                </iframe>`;
+        }
+
         async function handleSearch() {
             const query = document.getElementById('query').value;
             const resultsDiv = document.getElementById('results');
-            
             resultsDiv.innerHTML = "Searching...";
 
             const { data, error } = await supabaseClient
@@ -28,7 +72,7 @@
                 .select('title, youtube_video_id, content')
                 .textSearch('content', query, { 
                     config: 'english',
-                    type: 'websearch' // Allows for more natural search terms
+                    type: 'websearch'
                 });
 
             if (error) {
@@ -37,17 +81,27 @@
             }
 
             if (data.length === 0) {
-                resultsDiv.innerHTML = "No sermons found matching that search.";
+                resultsDiv.innerHTML = "No sermons found.";
                 return;
             }
 
-            resultsDiv.innerHTML = data.map(s => `
-                <div style="margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
+            resultsDiv.innerHTML = data.map(s => {
+                const thumbUrl = `https://img.youtube.com/vi/${s.youtube_video_id}/maxresdefault.jpg`;
+                
+                return `
+                <div class="sermon-card">
                     <h3>${s.title}</h3>
-                    <a href="https://www.youtube.com/watch?v=${s.youtube_video_id}" target="_blank">Watch on YouTube</a>
-                    <p>${s.content ? s.content.substring(0, 200) : 'No transcript available'}...</p>
+                    
+                    <div class="video-container" onclick="loadVideo(this, '${s.youtube_video_id}')">
+                        <img src="${thumbUrl}" alt="${s.title}">
+                        <div class="play-button">▶</div>
+                    </div>
+
+                    <p style="color: #666; font-size: 0.9em; margin-top: 15px;">
+                        ${s.content ? s.content.substring(0, 250) : 'No transcript available'}...
+                    </p>
                 </div>
-            `).join('');
+            `}).join('');
         }
     </script>
 </body>
