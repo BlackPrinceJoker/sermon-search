@@ -26,7 +26,7 @@
             const { data, error } = await supabaseClient
                 .from('sermons')
                 .select('title, youtube_video_id, content')
-                .textSearch('fts', query, { 
+                .textSearch('content', query, { 
                     config: 'english',
                     type: 'websearch' // Allows for more natural search terms
                 });
