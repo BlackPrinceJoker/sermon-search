@@ -10,13 +10,13 @@
         button:hover { background: #1b5e20; }
         
         .sermon-card { margin-bottom: 50px; border-bottom: 2px solid #eee; padding-bottom: 30px; }
-        .video-container { position: relative; width: 100%; max-width: 480px; aspect-ratio: 16 / 9; background: #000; cursor: pointer; border-radius: 8px; overflow: hidden; margin: 15px 0; }
+        .video-container { position: relative; width: 100%; max-width: 240px; aspect-ratio: 16 / 9; background: #000; cursor: pointer; border-radius: 8px; overflow: hidden; margin: 15px 0; }
         .video-container img { width: 100%; height: 100%; object-fit: cover; }
-        .play-button { position: absolute; width: 60px; height: 40px; background: rgba(255, 0, 0, 0.9); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; transition: 0.2s; }
+        .play-button { z-index: 2; pointer-events: none;position: absolute; width: 60px; height: 40px; background: rgba(255, 0, 0, 0.9); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; transition: 0.2s; }
         .video-container:hover .play-button { transform: scale(1.1); background: red; }
         
         .search-stats { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; margin-bottom: 10px; }
-        .snippet { background: #fffbe6; padding: 10px; border-left: 4px solid #ffe58f; margin: 10px 0; font-style: italic; }
+        .snippet { background: #fffbe6; padding: 7px; border-left: 4px solid #ffe58f; margin: 10px 0; font-style: italic; }
         mark { background: #fffaad; padding: 0 2px; font-weight: bold; border-radius: 2px; }
         
         .other-mentions { display: none; margin-top: 10px; padding-left: 20px; border-left: 2px dashed #ccc; }
