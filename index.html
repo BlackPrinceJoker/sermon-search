@@ -3,105 +3,107 @@
 <head>
     <title>Sermon Search</title>
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 20px auto; padding: 20px; }
-        .sermon-card { margin-bottom: 40px; border-bottom: 1px solid #eee; padding-bottom: 20px; }
-        .video-container { 
-            position: relative; 
-            width: 100%; 
-            max-width: 560px; 
-            aspect-ratio: 16 / 9; 
-            background: #000; 
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            overflow: hidden;
-        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 850px; margin: 20px auto; padding: 20px; line-height: 1.6; color: #333; }
+        .search-controls { background: #f4f4f4; padding: 20px; border-radius: 8px; margin-bottom: 30px; display: flex; gap: 10px; }
+        input { flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
+        button { padding: 12px 24px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #1b5e20; }
+        
+        .sermon-card { margin-bottom: 50px; border-bottom: 2px solid #eee; padding-bottom: 30px; }
+        .video-container { position: relative; width: 100%; max-width: 480px; aspect-ratio: 16 / 9; background: #000; cursor: pointer; border-radius: 8px; overflow: hidden; margin: 15px 0; }
         .video-container img { width: 100%; height: 100%; object-fit: cover; }
-        .play-button {
-            position: absolute;
-            width: 68px;
-            height: 48px;
-            background: rgba(255, 0, 0, 0.9);
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 24px;
-            transition: transform 0.2s;
-        }
+        .play-button { position: absolute; width: 60px; height: 40px; background: rgba(255, 0, 0, 0.9); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: white; transition: 0.2s; }
         .video-container:hover .play-button { transform: scale(1.1); background: red; }
+        
+        .search-stats { display: inline-block; background: #e8f5e9; color: #2e7d32; padding: 2px 8px; border-radius: 4px; font-size: 0.85em; font-weight: bold; margin-bottom: 10px; }
+        .snippet { background: #fffbe6; padding: 10px; border-left: 4px solid #ffe58f; margin: 10px 0; font-style: italic; }
+        mark { background: #fffaad; padding: 0 2px; font-weight: bold; border-radius: 2px; }
+        
+        .other-mentions { display: none; margin-top: 10px; padding-left: 20px; border-left: 2px dashed #ccc; }
+        .toggle-btn { background: none; border: none; color: #0066cc; cursor: pointer; padding: 0; font-size: 0.9em; text-decoration: underline; }
     </style>
 </head>
 <body>
-    <h1>Sermon Library</h1>
-    <input type="text" id="query" placeholder="Search by keyword or scripture..." style="padding: 10px; width: 300px;">
-    <button onclick="handleSearch()" style="padding: 10px 20px; cursor: pointer;">Search</button>
-    <div id="results" style="margin-top: 20px;"></div>
+
+    <h1>Sermon Archive</h1>
+    <div class="search-controls">
+        <input type="text" id="query" placeholder="Enter a word or phrase (e.g. 'Grace' or 'Mercy')...">
+        <button onclick="handleSearch()">Search Transcripts</button>
+    </div>
+    
+    <div id="results"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
     <script>
         const supabaseClient = supabase.createClient(
             'https://ncypcogvnhmwfxqkzeuj.supabase.co', 
             'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jeXBjb2d2bmhtd2Z4cWt6ZXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMzgyOTcsImV4cCI6MjA4MjcxNDI5N30.H6Gl6ZPsLohoCNKzwwvY30AA83INrKD65qwL1Ma3KHc'
         );
 
-        // This function replaces the thumbnail with the actual YouTube Iframe
         function loadVideo(div, videoId) {
-            div.innerHTML = `
-                <iframe 
-                    width="100%" 
-                    height="100%" 
-                    src="https://www.youtube.com/embed/${videoId}?autoplay=1" 
-                    frameborder="0" 
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                    allowfullscreen>
-                </iframe>`;
+            div.innerHTML = `<iframe width="100%" height="100%" src="https://www.youtube.com/embed/${videoId}?autoplay=1" frameborder="0" allowfullscreen></iframe>`;
+        }
+
+        function toggleMentions(btn) {
+            const container = btn.nextElementSibling;
+            const isHidden = container.style.display === "none" || container.style.display === "";
+            container.style.display = isHidden ? "block" : "none";
+            btn.innerText = isHidden ? "Hide extra mentions" : `Show ${btn.dataset.count} more mentions`;
+        }
+
+        function getContextSnippets(text, query) {
+            if (!query) return [];
+            // Find the query globally, case-insensitive
+            const regex = new RegExp(`(\\b.{0,60})(${query})(.{0,60}\\b)`, 'gi');
+            const matches = [...text.matchAll(regex)];
+            
+            return matches.map(m => {
+                return `${m[1]}<mark>${m[2]}</mark>${m[3]}`;
+            });
         }
 
         async function handleSearch() {
-            const query = document.getElementById('query').value;
+            const query = document.getElementById('query').value.trim();
             const resultsDiv = document.getElementById('results');
-            resultsDiv.innerHTML = "Searching...";
+            if (!query) return;
+
+            resultsDiv.innerHTML = "Processing transcripts...";
 
             const { data, error } = await supabaseClient
                 .from('sermons')
                 .select('title, youtube_video_id, content')
-                .textSearch('content', query, { 
-                    config: 'english',
-                    type: 'websearch'
-                });
+                .textSearch('content', query, { config: 'english', type: 'websearch' });
 
-            if (error) {
-                resultsDiv.innerHTML = "Error: " + error.message;
-                return;
-            }
+            if (error) { resultsDiv.innerHTML = "Error: " + error.message; return; }
+            if (data.length === 0) { resultsDiv.innerHTML = "No matches found."; return; }
 
-            if (data.length === 0) {
-                resultsDiv.innerHTML = "No sermons found.";
-                return;
-            }
+            resultsDiv.innerHTML = data.map((s, idx) => {
+                const snippets = getContextSnippets(s.content, query);
+                const count = snippets.length;
+                const thumbUrl = `https://img.youtube.com/vi/${s.youtube_video_id}/mqdefault.jpg`;
 
-            resultsDiv.innerHTML = data.map(s => {
-                const thumbUrl = `https://img.youtube.com/vi/${s.youtube_video_id}/maxresdefault.jpg`;
-                
                 return `
                 <div class="sermon-card">
-                    <h3>${s.title}</h3>
+                    <div class="search-stats">Mentioned ${count} times</div>
+                    <h3 style="margin: 0 0 10px 0;">${s.title}</h3>
                     
                     <div class="video-container" onclick="loadVideo(this, '${s.youtube_video_id}')">
-                        <img src="${thumbUrl}" alt="${s.title}">
+                        <img src="${thumbUrl}" alt="Thumbnail">
                         <div class="play-button">▶</div>
                     </div>
 
-                    <p style="color: #666; font-size: 0.9em; margin-top: 15px;">
-                        ${s.content ? s.content.substring(0, 250) : 'No transcript available'}...
-                    </p>
-                </div>
-            `}).join('');
+                    <div class="snippet">...${snippets[0]}...</div>
+
+                    ${count > 1 ? `
+                        <button class="toggle-btn" data-count="${count - 1}" onclick="toggleMentions(this)">
+                            Show ${count - 1} more mentions
+                        </button>
+                        <div class="other-mentions">
+                            ${snippets.slice(1).map(snip => `<div class="snippet">...${snip}...</div>`).join('')}
+                        </div>
+                    ` : ''}
+                </div>`;
+            }).join('');
         }
     </script>
 </body>
