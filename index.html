@@ -44,7 +44,7 @@
             resultsDiv.innerHTML = data.map(s => `
                 <div style="margin-bottom: 20px; border-bottom: 1px solid #ccc; padding-bottom: 10px;">
                     <h3>${s.title}</h3>
-                    <a href="${s.youtube_url}" target="_blank">Watch on YouTube</a>
+                    <a href="'https://www.youtube.com/watch?v=' + ${s.youtube_video_id}" target="_blank">Watch on YouTube</a>
                     <p>${s.content ? s.content.substring(0, 200) : 'No transcript available'}...</p>
                 </div>
             `).join('');
