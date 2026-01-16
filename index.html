@@ -1,264 +1,239 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Sermon Library</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Formation Over Consumption</title>
     <style>
-        /* --- Global & Typography --- */
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; color: #333; line-height: 1.6; }
-        .container { max-width: 900px; margin: 0 auto; padding: 20px; }
-        a { color: #2e7d32; text-decoration: none; cursor: pointer; }
-        a:hover { text-decoration: underline; }
-
-        /* --- View Management --- */
-        .view-section { display: none; } /* Hide all by default */
-        .view-section.active { display: block; animation: fadeIn 0.3s; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        /* --- Search View Styles --- */
-        .search-controls { background: #f9f9f9; padding: 20px; border-radius: 8px; display: flex; gap: 10px; margin-bottom: 30px; border: 1px solid #eee; }
-        input { flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px; font-size: 16px; }
-        .btn-primary { padding: 12px 24px; background: #2e7d32; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .btn-primary:hover { background: #1b5e20; }
+        /* --- GLOBAL RESET --- */
+        * { box-sizing: border-box; }
         
-        /* Result Card */
-        .sermon-card { background: white; border: 1px solid #eee; border-radius: 8px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .card-header { display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px; }
-        .stats-badge { background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 4px; font-size: 0.8rem; font-weight: bold; white-space: nowrap;}
-
-        /* Video Thumbnail with Play Button */
-        .video-thumb-container { 
-            position: relative; 
-            width: 100%; 
-            max-width: 300px; 
-            aspect-ratio: 16/9; 
-            border-radius: 8px; 
-            overflow: hidden; 
-            cursor: pointer; 
-            background: #000;
-            flex-shrink: 0;
+        body {
+            background-color: #000; /* Black background to blend with image edges */
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Center vertically on desktop */
+            min-height: 100vh;
+            font-family: 'Cinzel', serif; /* A font closer to the design */
         }
-        .video-thumb-container img { width: 100%; height: 100%; object-fit: cover; opacity: 0.9; transition: opacity 0.2s; }
-        .video-thumb-container:hover img { opacity: 0.7; }
-        
-        /* The Red Play Button Overlay */
-        .play-overlay {
-            position: absolute;
-            top: 50%; left: 50%;
-            transform: translate(-50%, -50%);
-            width: 50px; height: 35px;
-            background: rgba(255, 0, 0, 0.9);
+
+        /* --- MOBILE CONTAINER --- */
+        .mobile-container {
+            width: 100%;
+            max-width: 480px; /* Limits width to typical mobile size */
+            position: relative;
+            background-color: #0f141e;
+            box-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
+            overflow: hidden;
+        }
+
+        /* --- VIEW MANAGEMENT --- */
+        .view {
+            display: none;
+            position: relative; /* Changed to relative so height adapts to image */
+            width: 100%;
+        }
+
+        .view.active {
+            display: block;
+            animation: fadeIn 0.4s ease-out;
+        }
+
+        /* --- BACKGROUND IMAGES --- */
+        /* Key Fix: This ensures the full image is always visible and sets the container height */
+        .bg-img {
+            width: 100%;
+            height: auto; 
+            display: block;
+        }
+
+        /* --- BUTTONS --- */
+        .btn {
+            cursor: pointer;
+            position: absolute; /* Allows precise placement over the image */
+            z-index: 10;
             border-radius: 8px;
-            display: flex; align-items: center; justify-content: center;
-            color: white; font-size: 20px;
-            pointer-events: none; /* Let click pass to container */
-            transition: transform 0.2s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.8);
+            transition: transform 0.1s;
         }
-        .video-thumb-container:hover .play-overlay { transform: translate(-50%, -50%) scale(1.1); background: red; }
+        .btn:active { transform: scale(0.96); }
 
-        /* Snippets & Mentions */
-        .snippet { background: #fffbe6; padding: 8px; border-left: 3px solid #ffe58f; margin: 5px 0; font-style: italic; font-size: 0.95rem; }
-        mark { background: #fffaad; padding: 0 2px; font-weight: bold; }
+        /* --- HOME SCREEN LAYOUT (The Fix) --- */
         
-        .other-mentions { display: none; margin-top: 10px; padding-left: 15px; border-left: 2px dashed #ccc; }
-        .toggle-btn { background: none; border: none; color: #0066cc; cursor: pointer; padding: 5px 0; font-size: 0.85rem; text-decoration: underline; }
-        
-        /* Layout for Card Content */
-        .card-body { display: flex; gap: 20px; flex-wrap: wrap; align-items: flex-start;}
-        .card-content { flex: 1; min-width: 250px; }
+        /* 1. The Library Button (Right of the Moon) */
+        .home-btn-library {
+            top: 28%;      /* Aligns vertically with the Moon */
+            right: 4%;     /* Pushed to the right edge */
+            width: 47%;    /* Occupies right half of screen */
+            height: auto;
+        }
 
-        /* --- Player View Styles --- */
-        .player-container { max-width: 1100px; margin: 0 auto; padding: 20px; }
-        .theater-video { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 12px; margin-bottom: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
-        .transcript-content { max-width: 800px; margin: 0 auto; white-space: pre-wrap; font-family: Georgia, serif; font-size: 1.1rem; line-height: 1.8; color: #222; }
+        /* 2. The Infirmary Button (Left of the Heart) */
+        .home-btn-infirmary {
+            bottom: 18%;   /* Aligns vertically with the Heart (just above footer) */
+            left: 7%;      /* Pushed to the left edge */
+            width: 47%;    /* Occupies left half of screen */
+            height: auto;
+        }
+/* --- PORCH VIEW SPECIFIC --- */
+.porch-overlay-btn {
+    position: absolute;
+    top: 26%;       /* Adjusts vertical position (below the header) */
+    left: 6%;       /* Adjusts horizontal position */
+    width: 88%;    /* Keeps original pixel size */
+    z-index: 20;    /* Ensures it sits on top of the background */
+}
+.jesus-overlay-btn {
+    position: absolute;
+    top: 26%;       /* Adjusts vertical position (below the header) */
+    left: 6%;       /* Adjusts horizontal position */
+    width: 88%;    /* Keeps original pixel size */
+    z-index: 20;    /* Ensures it sits on top of the background */
+}
+.pride-overlay-btn {
+    position: absolute;
+    top: 26%;       /* Adjusts vertical position (below the header) */
+    left: 6%;       /* Adjusts horizontal position */
+    width: 88%;    /* Keeps original pixel size */
+    z-index: 20;    /* Ensures it sits on top of the background */
+}
+        /* --- VERTICAL MENUS (For Level 1, 2, 3 pages) --- */
+        /* We use an overlay div to stack these buttons centrally */
+        .menu-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding-top: 20%; /* Pushes content down below headers */
+            gap: 15px;
+        }
 
-        /* --- Transcript View Styles --- */
-        .reading-container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
-        .subtle-btn { display: inline-block; padding: 8px 16px; border: 1px solid #ccc; border-radius: 20px; color: #666; font-size: 0.9rem; transition: 0.2s; }
-        .subtle-btn:hover { border-color: #2e7d32; color: #2e7d32; text-decoration: none; }
-        
-        .nav-bar { padding: 10px 0; margin-bottom: 20px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; }
+        .menu-btn {
+            width: 90%;
+            height: auto;
+        }
+
+        /* --- BACK BUTTON --- */
+        .back-arrow {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            z-index: 100;
+            color: #c5a059;
+            font-size: 24px;
+            background: rgba(0,0,0,0.6);
+            width: 40px;
+            height: 40px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 1px solid #8a703d;
+            text-decoration: none;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="view-search" class="container view-section active">
-        <h1>Sermon Archive</h1>
-        <div class="search-controls">
-            <input type="text" id="query" placeholder="Search for 'Hope', 'Grace', 'Mercy'...">
-            <button class="btn-primary" onclick="handleSearch()">Search</button>
-        </div>
-        <div id="results"></div>
-    </div>
+    <div class="mobile-container">
 
-    <div id="view-player" class="player-container view-section">
-        <div class="nav-bar"><a onclick="goHome()">← Back to Search</a></div>
-        <div id="player-wrapper"></div> <div id="player-text" class="transcript-content"></div>
-    </div>
+        <div id="back-btn" class="back-arrow" onclick="goBack()">&#8592;</div>
 
-    <div id="view-transcript" class="reading-container view-section">
-        <div class="nav-bar">
-            <a onclick="goHome()">← Back to Search</a>
-            <a id="watch-btn" class="subtle-btn">▶ Watch Video</a>
-        </div>
-        <h1 id="transcript-title"></h1>
-        <div id="transcript-body" class="transcript-content"></div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        const supabaseClient = supabase.createClient(
-            'https://ncypcogvnhmwfxqkzeuj.supabase.co', 
-            'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5jeXBjb2d2bmhtd2Z4cWt6ZXVqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjcxMzgyOTcsImV4cCI6MjA4MjcxNDI5N30.H6Gl6ZPsLohoCNKzwwvY30AA83INrKD65qwL1Ma3KHc'
-        );
-
-        let allSermonsCache = []; 
-
-        window.addEventListener('load', handleRouting);
-        window.addEventListener('popstate', handleRouting);
-
-        document.getElementById("query").addEventListener("keypress", function(event) {
-            if (event.key === "Enter") handleSearch();
-        });
-
-        function handleRouting() {
-            const params = new URLSearchParams(window.location.search);
-            const videoId = params.get('video');
-            const transcriptId = params.get('transcript');
-
-            // 1. Reset Scroll Position
-            window.scrollTo(0, 0);
-
-            // 2. Kill any playing video if we are leaving the player view
-            if (!videoId) {
-                document.getElementById('player-wrapper').innerHTML = ''; 
-            }
-
-            // 3. Toggle Views
-            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
-
-            if (videoId) {
-                renderPlayerView(videoId);
-            } else if (transcriptId) {
-                renderTranscriptView(transcriptId);
-            } else {
-                document.getElementById('view-search').classList.add('active');
-            }
-        }
-
-        function navigateTo(type, id) {
-            const url = type === 'home' ? window.location.pathname : `?${type}=${id}`;
-            window.history.pushState({}, '', url);
-            handleRouting();
-        }
-
-        function goHome() { navigateTo('home'); }
-
-        function toggleMentions(btn) {
-            const container = btn.nextElementSibling;
-            const isHidden = container.style.display === "none" || container.style.display === "";
-            container.style.display = isHidden ? "block" : "none";
-            btn.innerText = isHidden ? "Hide extra mentions" : `Show ${btn.dataset.count} more mentions`;
-        }
-
-        async function handleSearch() {
-            const query = document.getElementById('query').value.trim();
-            const resultsDiv = document.getElementById('results');
-            if (!query) return;
-
-            resultsDiv.innerHTML = "<p style='color:#666;'>Scanning library...</p>";
-
-            const { data, error } = await supabaseClient
-                .from('sermons')
-                .select('*')
-                .textSearch('content', query, { config: 'english', type: 'websearch' });
-
-            if (error) { resultsDiv.innerHTML = "Error: " + error.message; return; }
-            if (data.length === 0) { resultsDiv.innerHTML = "No matches found."; return; }
-
-            const processedData = data.map(s => {
-                const snippets = getContextSnippets(s.content, query);
-                return { ...s, snippets, matchCount: snippets.length };
-            });
-
-            processedData.sort((a, b) => b.matchCount - a.matchCount);
-            allSermonsCache = processedData;
-
-            resultsDiv.innerHTML = processedData.map((s, idx) => {
-                return `
-                <div class="sermon-card">
-                    <div class="card-header">
-                        <h3 style="margin:0;"><a onclick="navigateTo('transcript', '${s.id}')">${s.title}</a></h3>
-                        <span class="stats-badge">${s.matchCount} Matches</span>
-                    </div>
-
-                    <div class="card-body">
-                        <div class="video-thumb-container" onclick="navigateTo('video', '${s.id}')">
-                            <img src="https://img.youtube.com/vi/${s.youtube_video_id}/mqdefault.jpg" title="Click to Watch">
-                            <div class="play-overlay">▶</div>
-                        </div>
-                        
-                        <div class="card-content">
-                            <div class="snippet">...${s.snippets[0]}...</div>
-                            
-                            ${s.matchCount > 1 ? `
-                                <button class="toggle-btn" data-count="${s.matchCount - 1}" onclick="toggleMentions(this)">
-                                    Show ${s.matchCount - 1} more mentions
-                                </button>
-                                <div class="other-mentions">
-                                    ${s.snippets.slice(1).map(snip => `<div class="snippet">...${snip}...</div>`).join('')}
-                                </div>
-                            ` : ''}
-
-                            <div style="margin-top:15px; font-size:0.9rem;">
-                                <a onclick="navigateTo('transcript', '${s.id}')">Read Full Transcript &rarr;</a>
-                            </div>
-                        </div>
-                    </div>
-                </div>`;
-            }).join('');
-        }
-
-        async function renderPlayerView(id) {
-            document.getElementById('view-player').classList.add('active');
-            let sermon = allSermonsCache.find(s => s.id === id);
-            if (!sermon) sermon = await fetchSingleSermon(id);
-
-            // Inject Video (Autoplay ON)
-            document.getElementById('player-wrapper').innerHTML = `
-                <iframe class="theater-video" 
-                    src="https://www.youtube.com/embed/${sermon.youtube_video_id}?autoplay=1" 
-                    frameborder="0" allow="autoplay; encrypted-media" allowfullscreen>
-                </iframe>`;
+        <div id="view-home" class="view active">
+            <img src="homeBackground.png" class="bg-img" alt="Home Background">
             
-            document.getElementById('player-text').innerHTML = `<h2>${sermon.title}</h2>${formatMarkdown(sermon.content)}`;
+            <img src="libraryButton.jpeg" class="btn home-btn-library" onclick="navigateTo('view-library')" alt="The Library">
+            <img src="infirmaryButton.jpeg" class="btn home-btn-infirmary" onclick="navigateTo('view-infirmary')" alt="The Infirmary">
+        </div>
+
+        <div id="view-library" class="view">
+            <img src="libraryBackground.png" class="bg-img" alt="Library Background">
+            
+            <div class="menu-overlay">
+                <img src="level1Button.jpeg" class="btn menu-btn" onclick="navigateTo('view-porch')" style="position: relative;" alt="Level 1">
+                <img src="level2Button.jpeg" class="btn menu-btn" onclick="navigateTo('view-porch')" style="position: relative;" alt="Level 2">
+                <img src="level3Button.jpeg" class="btn menu-btn" onclick="navigateTo('view-porch')" style="position: relative;" alt="Level 3">
+            </div>
+        </div>
+
+        <div id="view-infirmary" class="view">
+            <img src="infirmaryBackground.png" class="bg-img" alt="Infirmary Background">
+            
+            <img src="prideButton.jpeg" class="btn pride-overlay-btn" onclick="navigateTo('view-pride')">
+</div>
+
+        <div id="view-porch" class="view">
+    <img src="porchBackground.png" class="bg-img" alt="Porch Background">
+    
+    <img src="porchButton.jpeg" class="btn porch-overlay-btn" onclick="navigateTo('view-jesus')" alt="Go to Jesus Page">
+</div>
+
+        <div id="view-jesus" class="view">
+            <img src="jesusBackground.png" class="bg-img" alt="Jesus Background">
+            
+            <img src="jesusButton.jpeg" class="btn jesus-overlay-btn" onclick="navigateTo('view-jesus-level2')">
+        </div>
+
+        <div id="view-jesus-level2" class="view">
+            <img src="jesusLevel2Background.png" class="bg-img" alt="Jesus Level 2 Background">
+        </div>
+
+        <div id="view-pride" class="view">
+            <img src="prideBackground.png" class="bg-img" alt="Pride Background">
+        </div>
+
+    </div>
+
+    <script>
+        let historyStack = ['view-home'];
+
+        function navigateTo(viewId) {
+            // Hide current view
+            const currentId = historyStack[historyStack.length - 1];
+            document.getElementById(currentId).classList.remove('active');
+
+            // Show new view
+            document.getElementById(viewId).classList.add('active');
+            
+            // Add to stack
+            historyStack.push(viewId);
+            updateUI();
         }
 
-        async function renderTranscriptView(id) {
-            document.getElementById('view-transcript').classList.add('active');
-            let sermon = allSermonsCache.find(s => s.id === id);
-            if (!sermon) sermon = await fetchSingleSermon(id);
+        function goBack() {
+            if (historyStack.length > 1) {
+                // Remove current
+                const currentId = historyStack.pop();
+                document.getElementById(currentId).classList.remove('active');
 
-            document.getElementById('transcript-title').innerText = sermon.title;
-            document.getElementById('transcript-body').innerHTML = formatMarkdown(sermon.content);
-            document.getElementById('watch-btn').onclick = () => navigateTo('video', id);
+                // Show previous
+                const prevId = historyStack[historyStack.length - 1];
+                document.getElementById(prevId).classList.add('active');
+                
+                updateUI();
+            }
         }
 
-        async function fetchSingleSermon(id) {
-            const { data } = await supabaseClient.from('sermons').select('*').eq('id', id).single();
-            return data;
-        }
-
-        function getContextSnippets(text, query) {
-            if (!query) return [];
-            const regex = new RegExp(`(\\b.{0,60})(${query})(.{0,60}\\b)`, 'gi');
-            const matches = [...text.matchAll(regex)];
-            return matches.map(m => `${m[1]}<mark>${m[2]}</mark>${m[3]}`);
-        }
-        
-        function formatMarkdown(text) {
-            if (!text) return '';
-            return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        function updateUI() {
+            const backBtn = document.getElementById('back-btn');
+            if (historyStack.length === 1) {
+                backBtn.style.display = 'none';
+            } else {
+                backBtn.style.display = 'flex';
+            }
         }
     </script>
 </body>
